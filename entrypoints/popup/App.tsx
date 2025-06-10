@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
+import { ChatInterface } from './components/ChatInterface'
 
 function App() {
   const [apiKey, setApiKey] = useState('')
@@ -7,13 +8,7 @@ function App() {
   const [message, setMessage] = useState('')
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('')
   const [isConfigExpanded, setIsConfigExpanded] = useState(false)
-  const [summary, setSummary] = useState('')
-  const [summaryMetadata, setSummaryMetadata] = useState<{
-    title: string;
-    wordCount: number;
-    contentType: string;
-  } | null>(null)
-  const [isSummaryExpanded, setIsSummaryExpanded] = useState(false)
+
 
         // Load saved API key on component mount
   useEffect(() => {
@@ -118,63 +113,7 @@ function App() {
     }
   }
 
-  const generateSummary = async () => {
-    console.log('🚀 Generate summary button clicked')
-    
-    if (!apiKey.trim()) {
-      console.log('❌ No API key available for summary generation')
-      showMessage('Please save your API key first', 'error')
-      return
-    }
 
-    setIsLoading(true)
-    setSummary('')
-    setSummaryMetadata(null)
-    console.log('🚀 Starting summary generation...')
-    
-    try {
-      console.log('🚀 Getting active tab...')
-      const [tab] = await browser.tabs.query({ active: true, currentWindow: true })
-      console.log('🚀 Active tab:', tab)
-      
-      if (!tab.id) {
-        throw new Error('No active tab found')
-      }
-
-      console.log('🚀 Sending message to content script...')
-      const response = await browser.tabs.sendMessage(tab.id, {
-        type: 'GENERATE_SUMMARY_FROM_POPUP'
-      })
-      console.log('🚀 Content script response:', response)
-
-      if (response?.success) {
-        console.log('✅ Summary generated successfully')
-        setSummary(response.summary)
-        setSummaryMetadata({
-          title: response.title || 'Untitled',
-          wordCount: response.wordCount || 0,
-          contentType: response.contentType || 'general'
-        })
-        setIsSummaryExpanded(true)
-        showMessage('Summary generated successfully!', 'success')
-      } else {
-        console.log('❌ Summary generation failed')
-        const errorMsg = response?.error || 'This page cannot be summarized (not enough content)'
-        showMessage(errorMsg, 'error')
-      }
-    } catch (error) {
-      console.error('❌ Error generating summary:', error)
-      console.error('❌ Error details:', {
-        name: error instanceof Error ? error.name : 'Unknown',
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      })
-      showMessage('Error generating summary. Make sure you\'re on a web page with content.', 'error')
-    } finally {
-      setIsLoading(false)
-      console.log('🚀 Summary generation completed')
-    }
-  }
 
   const showMessage = (text: string, type: 'success' | 'error') => {
     console.log(`📢 Showing ${type} message:`, text)
@@ -187,33 +126,15 @@ function App() {
     }, 4000)
   }
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(summary)
-      showMessage('Summary copied to clipboard!', 'success')
-    } catch (error) {
-      console.error('Failed to copy to clipboard:', error)
-      showMessage('Failed to copy to clipboard', 'error')
-    }
-  }
-
-  // Auto-expand summary when generated
-  useEffect(() => {
-    if (summary) {
-      setIsSummaryExpanded(true)
-    }
-  }, [summary])
-
   // Log component state changes
   useEffect(() => {
     console.log('🔄 Component state changed:', {
       apiKeyLength: apiKey.length,
       isLoading,
       messageType,
-      hasMessage: !!message,
-      hasSummary: !!summary
+      hasMessage: !!message
     })
-  }, [apiKey, isLoading, messageType, message, summary])
+  }, [apiKey, isLoading, messageType, message])
 
   return (
     <div className="w-80 h-[500px] bg-white border border-gray-200 flex flex-col">
@@ -311,97 +232,13 @@ function App() {
             )}
           </div>
 
-          {/* Generate Summary Section */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 px-3">
-              <div className="w-2 h-2 bg-black rounded-full"></div>
-              <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Generate Summary</span>
-            </div>
-            
-        <button 
-              onClick={generateSummary}
-              disabled={isLoading || !apiKey.trim()}
-              className="w-full bg-black hover:bg-gray-900 disabled:bg-gray-300 text-white py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  Generating...
-                </div>
-              ) : (
-                <div className="flex items-center justify-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  Generate Summary
-                </div>
-              )}
-        </button>
-            
-            <p className="text-xs text-gray-500 text-center px-3">
-              Create an AI-powered summary of the current page
-        </p>
-      </div>
-      
-          {/* Summary Display Section */}
-          {summary && (
-            <div className="space-y-3 border-t border-gray-200 pt-4">
-              <div className="flex items-center justify-between px-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 bg-black rounded-full"></div>
-                  <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Summary</span>
-                  {summaryMetadata && (
-                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      {summaryMetadata.wordCount} words
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-                  className="p-1 hover:bg-gray-200 rounded cursor-pointer"
-                >
-                  <svg 
-                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isSummaryExpanded ? 'rotate-180' : ''}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-              </div>
-              
-              {isSummaryExpanded && (
-                <div className="space-y-3">
-                  {summaryMetadata && (
-                    <div className="flex items-center justify-between text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg mx-3">
-                      <span className="font-medium truncate">{summaryMetadata.title}</span>
-                      <span className="capitalize ml-2">{summaryMetadata.contentType}</span>
-                    </div>
-                  )}
-                  
-                  <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mx-3">
-                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">
-                      {summary}
-                    </p>
-                  </div>
-                  
-                  <button
-                    onClick={copyToClipboard}
-                    className="w-full bg-black hover:bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 mx-3 cursor-pointer"
-                    style={{ width: 'calc(100% - 1.5rem)' }}
-                  >
-                    <div className="flex items-center justify-center gap-2">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                      Copy to Clipboard
-                    </div>
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Chat Interface Section */}
+          <div className="flex-1 min-h-0">
+            <ChatInterface 
+              apiKey={apiKey}
+              onShowMessage={showMessage}
+            />
+          </div>
 
           {/* Message Display */}
           {message && (

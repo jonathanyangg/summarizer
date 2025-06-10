@@ -174,6 +174,28 @@ export default defineContentScript({
         
         return true; // Keep message channel open for async response
       }
+
+      if (message.type === 'GET_PAGE_CONTENT') {
+        console.log('📄 Getting page content for chat interface...');
+        
+        // Extract content
+        const extractedContent = ContentExtractor.extractContent();
+        if (extractedContent) {
+          sendResponse({
+            success: true,
+            title: extractedContent.title,
+            content: extractedContent.content,
+            contentType: extractedContent.contentType,
+            wordCount: extractedContent.wordCount
+          });
+        } else {
+          sendResponse({
+            success: false,
+            error: 'Could not extract content from this page'
+          });
+        }
+        return true;
+      }
       
       return false;
     });

@@ -40,6 +40,32 @@ export default defineBackground(() => {
       return true; // Keep message channel open for async response
     }
 
+    if (message.type === 'GENERATE_CHAT_RESPONSE') {
+      console.log('💬 Processing GENERATE_CHAT_RESPONSE request');
+      
+      // Handle async operation properly
+      (async () => {
+        try {
+          const response = await generateChatResponse(message.prompt, message.userMessage);
+          console.log('✅ Chat response generated successfully, length:', response.length);
+          sendResponse({ success: true, response });
+        } catch (error) {
+          console.error('❌ Error generating chat response:', error);
+          console.error('❌ Error details:', {
+            name: error instanceof Error ? error.name : 'Unknown',
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+          });
+          sendResponse({ 
+            success: false, 
+            error: error instanceof Error ? error.message : 'Unknown error occurred' 
+          });
+        }
+      })();
+      
+      return true; // Keep message channel open for async response
+    }
+
     console.log('❓ Unknown message type:', message.type);
     sendResponse({ success: false, error: 'Unknown message type' });
     return false;
@@ -149,6 +175,111 @@ async function generateSummary(content: string, title: string, contentType: stri
 
   } catch (error) {
     console.error('❌ Error in generateSummary:', error);
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error('Failed to connect to OpenAI API');
+  }
+}
+
+async function generateChatResponse(prompt: string, userMessage: string): Promise<string> {
+  console.log('💬 Starting chat response generation:', {
+    promptLength: prompt.length,
+    userMessageLength: userMessage.length
+  });
+
+  // Get OpenAI API key from storage
+  console.log('🔑 Retrieving API key from storage...');
+  try {
+    const result = await browser.storage.sync.get(['openaiApiKey']);
+    console.log('🔑 Storage retrieval result:', {
+      hasApiKey: !!result.openaiApiKey,
+      keyLength: result.openaiApiKey?.length || 0,
+      keyPrefix: result.openaiApiKey?.substring(0, 3) || 'none'
+    });
+
+    const apiKey = result.openaiApiKey;
+
+    if (!apiKey) {
+      console.log('❌ No API key found in storage');
+      throw new Error('OpenAI API key not configured. Please set it in the extension popup.');
+    }
+
+    if (!apiKey.startsWith('sk-')) {
+      console.log('❌ Invalid API key format');
+      throw new Error('Invalid API key format. OpenAI keys should start with "sk-".');
+    }
+
+    console.log('✅ Valid API key found');
+
+    console.log('🌐 Making OpenAI API request for chat response...');
+    const requestBody = {
+      model: 'gpt-3.5-turbo',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant that answers questions about web page content. Provide clear, concise, and helpful responses based on the context provided.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 500,
+      temperature: 0.3,
+    };
+
+    console.log('🌐 Request body prepared:', {
+      model: requestBody.model,
+      messagesCount: requestBody.messages.length,
+      maxTokens: requestBody.max_tokens,
+      temperature: requestBody.temperature
+    });
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    console.log('🌐 OpenAI API response status:', response.status);
+    console.log('🌐 Response headers:', Object.fromEntries(response.headers.entries()));
+
+    if (!response.ok) {
+      console.log('❌ OpenAI API request failed');
+      let errorData;
+      try {
+        errorData = await response.json();
+        console.log('❌ Error response data:', errorData);
+      } catch (parseError) {
+        console.log('❌ Could not parse error response:', parseError);
+        errorData = {};
+      }
+      throw new Error(`OpenAI API error: ${response.status} - ${errorData.error?.message || 'Unknown error'}`);
+    }
+
+    const data = await response.json();
+    console.log('✅ OpenAI API response received:', {
+      choices: data.choices?.length || 0,
+      usage: data.usage,
+      model: data.model
+    });
+
+    const chatResponse = data.choices?.[0]?.message?.content?.trim();
+
+    if (!chatResponse) {
+      console.log('❌ No chat response content in response');
+      throw new Error('No response generated from OpenAI API');
+    }
+
+    console.log('✅ Chat response extracted successfully, length:', chatResponse.length);
+    return chatResponse;
+
+  } catch (error) {
+    console.error('❌ Error in generateChatResponse:', error);
     if (error instanceof Error) {
       throw error;
     }
