@@ -101,7 +101,21 @@ export default defineContentScript({
       return;
     }
 
-    console.log('Page summarizer content script loaded for:', window.location.href);
+    console.log('🚀 Page summarizer content script loaded for:', window.location.href);
+
+    // Set up message listener for popup communication
+    browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+      console.log('📨 Content script received message:', message);
+      
+      if (message.type === 'TEST_SUMMARIZATION') {
+        const isSummarizable = ContentExtractor.isContentSummarizable();
+        console.log('🧪 Testing summarization capability:', isSummarizable);
+        sendResponse({ success: isSummarizable });
+        return true; // Keep message channel open for async response
+      }
+      
+      return false;
+    });
 
     // Wait for page to be ready
     await new Promise<void>((resolve) => {
@@ -116,7 +130,7 @@ export default defineContentScript({
     const isSummarizable = ContentExtractor.isContentSummarizable();
     
     if (!isSummarizable) {
-      console.log('Page content is not suitable for summarization');
+      console.log('ℹ️ Page content is not suitable for summarization');
       return;
     }
 
