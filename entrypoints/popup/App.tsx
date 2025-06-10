@@ -21,12 +21,12 @@ function App() {
     loadApiKey()
   }, [])
 
-  // Auto-expand config if no API key is saved
-  useEffect(() => {
-    if (!apiKey.trim()) {
-      setIsConfigExpanded(true)
-    }
-  }, [apiKey])
+  // Keep config collapsed by default
+  // useEffect(() => {
+  //   if (!apiKey.trim()) {
+  //     setIsConfigExpanded(true)
+  //   }
+  // }, [apiKey])
 
   const loadApiKey = async () => {
     try {
@@ -239,7 +239,7 @@ function App() {
           <div className="space-y-3">
             <button
               onClick={() => setIsConfigExpanded(!isConfigExpanded)}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all duration-200 border border-gray-200"
+              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-200 rounded-lg transition-all duration-200 border border-gray-200 cursor-pointer"
             >
               <div className="flex items-center gap-3">
                 <div className={`w-2 h-2 rounded-full ${apiKey.trim() ? 'bg-black' : 'bg-gray-400'}`}></div>
@@ -284,7 +284,7 @@ function App() {
                 <button
                   onClick={saveApiKey}
                   disabled={isLoading}
-                  className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200"
+                  className="w-full bg-black hover:bg-gray-900 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
                     <div className="flex items-center justify-center gap-2">
@@ -321,7 +321,7 @@ function App() {
         <button 
               onClick={generateSummary}
               disabled={isLoading || !apiKey.trim()}
-              className="w-full bg-black hover:bg-gray-800 disabled:bg-gray-300 text-white py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200"
+              className="w-full bg-black hover:bg-gray-900 disabled:bg-gray-300 text-white py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
@@ -358,7 +358,7 @@ function App() {
                 </div>
                 <button
                   onClick={() => setIsSummaryExpanded(!isSummaryExpanded)}
-                  className="p-1 hover:bg-gray-100 rounded"
+                  className="p-1 hover:bg-gray-200 rounded cursor-pointer"
                 >
                   <svg 
                     className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isSummaryExpanded ? 'rotate-180' : ''}`}
@@ -388,7 +388,7 @@ function App() {
                   
                   <button
                     onClick={copyToClipboard}
-                    className="w-full bg-gray-800 hover:bg-black text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 mx-3"
+                    className="w-full bg-black hover:bg-gray-900 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 mx-3 cursor-pointer"
                     style={{ width: 'calc(100% - 1.5rem)' }}
                   >
                     <div className="flex items-center justify-center gap-2">

@@ -10,7 +10,7 @@ export const SummaryButton: React.FC<SummaryButtonProps> = ({ onClick, isLoading
     <button
       onClick={onClick}
       disabled={isLoading}
-      className="fixed right-6 top-1/2 transform -translate-y-1/2 z-[10000] group"
+      className="fixed right-6 top-1/2 transform -translate-y-1/2 z-[10000] group cursor-pointer"
       title={isLoading ? "Generating summary..." : "Summarize this page"}
     >
       <div className="relative">
@@ -19,7 +19,7 @@ export const SummaryButton: React.FC<SummaryButtonProps> = ({ onClick, isLoading
           w-12 h-12 rounded-xl shadow-lg transition-all duration-300 transform
           ${isLoading 
             ? 'bg-gray-800 scale-105' 
-            : 'bg-black hover:bg-gray-800 hover:scale-105'
+            : 'bg-black hover:bg-gray-900 hover:scale-105'
           }
           flex items-center justify-center border border-gray-200
         `}>
