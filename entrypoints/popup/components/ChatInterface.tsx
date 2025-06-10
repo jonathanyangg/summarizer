@@ -20,6 +20,17 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
   } | null>(null);
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Smooth scroll to bottom function
+  const scrollToBottom = (smooth = true) => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: smooth ? 'smooth' : 'auto',
+        block: 'end'
+      });
+    }
+  };
 
   // Load page content when component mounts
   useEffect(() => {
@@ -89,6 +100,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
     ]);
 
     setIsLoading(true);
+    
+    // Scroll to bottom when new conversation starts
+    setTimeout(() => scrollToBottom(), 100);
 
     try {
       const response = await browser.runtime.sendMessage({
@@ -113,6 +127,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
             : conv
         ));
         onShowMessage('Summary generated successfully!', 'success');
+        
+        // Scroll to bottom when summary is generated
+        setTimeout(() => scrollToBottom(), 100);
       } else {
         throw new Error(response.error || 'Failed to generate summary');
       }
@@ -170,6 +187,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
     ));
 
     setIsLoading(true);
+    
+    // Scroll to bottom when user sends message
+    setTimeout(() => scrollToBottom(), 100);
 
     try {
       // Create context from conversation history
@@ -209,6 +229,9 @@ Please provide a helpful response based on the page content and our conversation
               }
             : conv
         ));
+        
+        // Scroll to bottom when AI responds
+        setTimeout(() => scrollToBottom(), 100);
       } else {
         throw new Error(response.error || 'Failed to generate response');
       }
@@ -276,50 +299,49 @@ Please provide a helpful response based on the page content and our conversation
     }
   }, [conversations.length]);
 
-  // Scroll to bottom when new messages are added
+  // Auto-scroll when conversations change (for any remaining edge cases)
   useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [conversations]);
+    const timeoutId = setTimeout(() => scrollToBottom(), 150);
+    return () => clearTimeout(timeoutId);
+  }, [conversations.length]);
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="flex-shrink-0 p-4 border-b border-gray-200">
+      <div className="flex-shrink-0 p-2 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 bg-black rounded-full"></div>
-            <span className="text-sm font-medium text-gray-900">AI Chat</span>
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
+            <span className="text-xs font-medium text-gray-900">AI Chat</span>
           </div>
           {!activeConversation && (
             <button
               onClick={generateInitialSummary}
               disabled={isLoading || !apiKey.trim()}
-              className="bg-black hover:bg-gray-900 disabled:bg-gray-300 text-white px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
+              className="bg-black hover:bg-gray-900 disabled:bg-gray-300 text-white px-2 py-1 rounded-md text-xs font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
             >
               Start Chat
             </button>
           )}
         </div>
         {currentPageContent && (
-          <p className="text-xs text-gray-500 mt-1 truncate">
+          <p className="text-xs text-gray-500 mt-0.5 truncate">
             {currentPageContent.title} • {currentPageContent.wordCount} words
           </p>
         )}
       </div>
 
       {/* Chat Content */}
-      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-2 space-y-2">
         {conversations.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-6">
+            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
-            <h3 className="text-sm font-medium text-gray-900 mb-2">Start a conversation</h3>
-            <p className="text-xs text-gray-500 mb-4">
+            <h3 className="text-xs font-medium text-gray-900 mb-1">Start a conversation</h3>
+            <p className="text-xs text-gray-500 mb-3">
               Get an AI summary of this page and ask follow-up questions
             </p>
           </div>
@@ -337,10 +359,10 @@ Please provide a helpful response based on the page content and our conversation
 
             {/* Previous Conversations */}
             {inactiveConversations.length > 0 && (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wide">
                   <div className="flex-1 h-px bg-gray-200"></div>
-                  <span>Previous Conversations</span>
+                  <span>Previous</span>
                   <div className="flex-1 h-px bg-gray-200"></div>
                 </div>
                 {inactiveConversations.map((conversation) => (
@@ -356,6 +378,8 @@ Please provide a helpful response based on the page content and our conversation
             )}
           </>
         )}
+        {/* Invisible element to scroll to */}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Chat Input */}
@@ -366,6 +390,7 @@ Please provide a helpful response based on the page content and our conversation
             isLoading={isLoading}
             disabled={!apiKey.trim()}
             placeholder="Ask a follow-up question about this page..."
+            onMessageSent={() => setTimeout(() => scrollToBottom(), 50)}
           />
         </div>
       )}

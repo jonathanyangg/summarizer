@@ -137,39 +137,39 @@ function App() {
   }, [apiKey, isLoading, messageType, message])
 
   return (
-    <div className="w-80 h-[500px] bg-white border border-gray-200 flex flex-col">
+    <div className="w-80 h-[600px] bg-white border border-gray-200 flex flex-col">
       {/* Header */}
-      <div className="bg-black px-6 py-4 text-white border-b border-gray-200 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="bg-black px-4 py-3 text-white border-b border-gray-200 flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 bg-white/10 rounded-lg flex items-center justify-center">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
           </div>
           <div>
-            <h1 className="text-lg font-semibold">Page Summarizer</h1>
-            <p className="text-gray-400 text-xs">AI-powered summaries</p>
+            <h1 className="text-base font-semibold">Page Summarizer</h1>
+            <p className="text-gray-400 text-xs">AI-powered chat</p>
           </div>
         </div>
       </div>
       
       {/* Content - Single Scrolling Section */}
       <div className="flex-1 overflow-y-auto">
-        <div className="p-4 space-y-4">
+        <div className="p-3 space-y-3">
           {/* API Key Section */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <button
               onClick={() => setIsConfigExpanded(!isConfigExpanded)}
-              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-200 rounded-lg transition-all duration-200 border border-gray-200 cursor-pointer"
+              className="w-full flex items-center justify-between p-2 bg-gray-50 hover:bg-gray-200 rounded-md transition-all duration-200 border border-gray-200 cursor-pointer"
             >
-              <div className="flex items-center gap-3">
-                <div className={`w-2 h-2 rounded-full ${apiKey.trim() ? 'bg-black' : 'bg-gray-400'}`}></div>
-                <span className="text-sm font-medium text-gray-900">
+              <div className="flex items-center gap-2">
+                <div className={`w-1.5 h-1.5 rounded-full ${apiKey.trim() ? 'bg-black' : 'bg-gray-400'}`}></div>
+                <span className="text-xs font-medium text-gray-900">
                   {apiKey.trim() ? 'API Key Configured' : 'Setup Required'}
                 </span>
               </div>
               <svg 
-                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isConfigExpanded ? 'rotate-180' : ''}`}
+                className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${isConfigExpanded ? 'rotate-180' : ''}`}
                 fill="none" 
                 stroke="currentColor" 
                 viewBox="0 0 24 24"
@@ -179,7 +179,7 @@ function App() {
             </button>
             
             {isConfigExpanded && (
-              <div className="space-y-3 px-3 pb-2">
+              <div className="space-y-2 px-2 pb-1">
                 <label htmlFor="apiKey" className="block text-xs font-medium text-gray-600 uppercase tracking-wide">
                   OpenAI API Key
                 </label>
@@ -193,11 +193,11 @@ function App() {
                       setApiKey(e.target.value)
                     }}
                     placeholder="sk-..."
-                    className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black text-sm transition-all duration-200 placeholder-gray-400"
+                    className="w-full px-2 py-1.5 bg-white border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black text-xs transition-all duration-200 placeholder-gray-400"
                   />
                   {apiKey && (
-                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                      <div className="w-2 h-2 bg-black rounded-full"></div>
+                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                      <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
                     </div>
                   )}
                 </div>
@@ -205,11 +205,11 @@ function App() {
                 <button
                   onClick={saveApiKey}
                   disabled={isLoading}
-                  className="w-full bg-black hover:bg-gray-900 disabled:bg-gray-400 text-white py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
+                  className="w-full bg-black hover:bg-gray-900 disabled:bg-gray-400 text-white py-1.5 px-3 rounded-md text-xs font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <div className="flex items-center justify-center gap-1">
+                      <div className="w-2.5 h-2.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
                       Saving...
                     </div>
                   ) : (
@@ -242,18 +242,18 @@ function App() {
 
           {/* Message Display */}
           {message && (
-            <div className={`p-3 rounded-lg text-sm font-medium transition-all duration-300 border-t border-gray-200 mt-4 ${
+            <div className={`p-2 rounded-md text-xs font-medium transition-all duration-300 border-t border-gray-200 mt-2 ${
               messageType === 'success' 
                 ? 'bg-gray-50 text-gray-800' 
                 : 'bg-gray-100 text-gray-900'
             }`}>
-              <div className="flex items-start gap-2">
+              <div className="flex items-start gap-1.5">
                 {messageType === 'success' ? (
-                  <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 ) : (
-                  <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3 h-3 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 )}

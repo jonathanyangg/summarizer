@@ -30,36 +30,36 @@ export const ChatConversation: React.FC<ChatConversationProps> = ({
       {/* Conversation Header */}
       <div 
         className={`
-          p-3 bg-gray-50 rounded-t-lg cursor-pointer hover:bg-gray-100 transition-colors duration-200
+          p-2 bg-gray-50 rounded-t-md cursor-pointer hover:bg-gray-100 transition-colors duration-200
           ${conversation.isActive ? 'bg-gray-100' : ''}
         `}
         onClick={onToggleCollapse}
       >
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${conversation.isActive ? 'bg-black' : 'bg-gray-400'}`}></div>
-              <h3 className="text-sm font-medium text-gray-900 truncate">
+            <div className="flex items-center gap-1.5">
+              <div className={`w-1.5 h-1.5 rounded-full ${conversation.isActive ? 'bg-black' : 'bg-gray-400'}`}></div>
+              <h3 className="text-xs font-medium text-gray-900 truncate">
                 {conversation.title}
               </h3>
-              <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                {messageCount} {messageCount === 1 ? 'message' : 'messages'}
+              <span className="text-xs text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
+                {messageCount}
               </span>
             </div>
             {isCollapsed && lastMessage && (
-              <p className="text-xs text-gray-600 mt-1 truncate">
+              <p className="text-xs text-gray-600 mt-0.5 truncate">
                 {lastMessage.type === 'ai' ? '🤖 ' : '👤 '}
-                {lastMessage.content.substring(0, 60)}
-                {lastMessage.content.length > 60 ? '...' : ''}
+                {lastMessage.content.substring(0, 50)}
+                {lastMessage.content.length > 50 ? '...' : ''}
               </p>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <span className="text-xs text-gray-500">
               {conversation.timestamp.toLocaleDateString()}
             </span>
             <svg 
-              className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
+              className={`w-3 h-3 text-gray-400 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -72,7 +72,7 @@ export const ChatConversation: React.FC<ChatConversationProps> = ({
 
       {/* Conversation Messages */}
       {!isCollapsed && (
-        <div className="p-4 space-y-4 max-h-80 overflow-y-auto">
+        <div className="p-2 space-y-2 max-h-60 overflow-y-auto">
           {conversation.messages.map((message) => (
             <ChatMessage
               key={message.id}

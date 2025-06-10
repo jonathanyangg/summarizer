@@ -74,10 +74,7 @@ const SummaryApp: React.FC = () => {
 
   return (
     <>
-      <SummaryButton 
-        onClick={handleSummarizeClick}
-        isLoading={state.isLoading && !state.isModalOpen}
-      />
+      {/* SummaryButton removed - using popup chat interface instead */}
       <SummaryModal
         isOpen={state.isModalOpen}
         onClose={handleCloseModal}
