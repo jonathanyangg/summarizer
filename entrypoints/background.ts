@@ -7,7 +7,7 @@ export default defineBackground(() => {
   });
 
   // Listen for messages from content scripts
-  browser.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
+  browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('📨 Background received message:', {
       type: message.type,
       sender: sender.tab?.url || 'popup',
@@ -16,26 +16,33 @@ export default defineBackground(() => {
 
     if (message.type === 'GENERATE_SUMMARY') {
       console.log('🤖 Processing GENERATE_SUMMARY request');
-      try {
-        const summary = await generateSummary(message.content, message.title, message.contentType);
-        console.log('✅ Summary generated successfully, length:', summary.length);
-        return { success: true, summary };
-      } catch (error) {
-        console.error('❌ Error generating summary:', error);
-        console.error('❌ Error details:', {
-          name: error instanceof Error ? error.name : 'Unknown',
-          message: error instanceof Error ? error.message : String(error),
-          stack: error instanceof Error ? error.stack : undefined
-        });
-        return { 
-          success: false, 
-          error: error instanceof Error ? error.message : 'Unknown error occurred' 
-        };
-      }
+      
+      // Handle async operation properly
+      (async () => {
+        try {
+          const summary = await generateSummary(message.content, message.title, message.contentType);
+          console.log('✅ Summary generated successfully, length:', summary.length);
+          sendResponse({ success: true, summary });
+        } catch (error) {
+          console.error('❌ Error generating summary:', error);
+          console.error('❌ Error details:', {
+            name: error instanceof Error ? error.name : 'Unknown',
+            message: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined
+          });
+          sendResponse({ 
+            success: false, 
+            error: error instanceof Error ? error.message : 'Unknown error occurred' 
+          });
+        }
+      })();
+      
+      return true; // Keep message channel open for async response
     }
 
     console.log('❓ Unknown message type:', message.type);
-    return { success: false, error: 'Unknown message type' };
+    sendResponse({ success: false, error: 'Unknown message type' });
+    return false;
   });
 });
 

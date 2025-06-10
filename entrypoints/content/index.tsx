@@ -114,6 +114,67 @@ export default defineContentScript({
         return true; // Keep message channel open for async response
       }
       
+      if (message.type === 'GENERATE_SUMMARY_FROM_POPUP') {
+        console.log('🚀 Generating summary from popup request...');
+        
+        // Check if content is summarizable
+        const isSummarizable = ContentExtractor.isContentSummarizable();
+        if (!isSummarizable) {
+          console.log('❌ Page content is not suitable for summarization');
+          sendResponse({ 
+            success: false, 
+            error: 'This page cannot be summarized (not enough content)' 
+          });
+          return true;
+        }
+        
+        // Extract content
+        const extractedContent = ContentExtractor.extractContent();
+        if (!extractedContent) {
+          console.log('❌ Failed to extract content from page');
+          sendResponse({ 
+            success: false, 
+            error: 'Failed to extract content from this page' 
+          });
+          return true;
+        }
+        
+        console.log('✅ Content extracted, sending to background script...');
+        
+        // Send to background script for AI processing
+        browser.runtime.sendMessage({
+          type: 'GENERATE_SUMMARY',
+          content: extractedContent.content,
+          title: extractedContent.title,
+          contentType: extractedContent.contentType,
+        }).then(response => {
+          console.log('🤖 Background script response:', response);
+          
+          if (response.success) {
+            sendResponse({
+              success: true,
+              summary: response.summary,
+              title: extractedContent.title,
+              wordCount: extractedContent.wordCount,
+              contentType: extractedContent.contentType
+            });
+          } else {
+            sendResponse({
+              success: false,
+              error: response.error || 'Failed to generate summary'
+            });
+          }
+        }).catch(error => {
+          console.error('❌ Error communicating with background script:', error);
+          sendResponse({
+            success: false,
+            error: 'Failed to communicate with AI service'
+          });
+        });
+        
+        return true; // Keep message channel open for async response
+      }
+      
       return false;
     });
 
