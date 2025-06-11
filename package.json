@@ -1,9 +1,19 @@
 {
-  "name": "wxt-react-starter",
-  "description": "manifest.json description",
+  "name": "page-summarizer-extension",
+  "description": "AI-powered browser extension that summarizes web pages using OpenAI",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "author": "Jonathan Yang",
+  "homepage": "https://github.com/jonathanyangg/summarizer",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jonathanyangg/summarizer.git"
+  },
+  "bugs": {
+    "url": "https://github.com/jonathanyangg/summarizer"
+  },
+  "keywords": ["browser-extension", "ai", "summarizer", "openai", "chrome", "firefox"],
   "scripts": {
     "dev": "wxt",
     "dev:firefox": "wxt -b firefox",
