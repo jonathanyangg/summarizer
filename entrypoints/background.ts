@@ -113,14 +113,14 @@ async function generateSummary(content: string, title: string, contentType: stri
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful assistant that creates concise, informative summaries of web content. Focus on the main points and key information.'
+          content: 'You are an expert at distilling content into ultra-concise summaries. Extract and present only the most critical information that represents 80%+ of the article\'s value. Use bullet points, keep sentences short, and eliminate all fluff. Maximum 3-4 sentences or 5-6 bullet points.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      max_tokens: 500,
+      max_tokens: 200,
       temperature: 0.3,
     };
 
@@ -218,14 +218,14 @@ async function generateChatResponse(prompt: string, userMessage: string): Promis
       messages: [
         {
           role: 'system',
-          content: 'You are a helpful assistant that answers questions about web page content. Provide clear, concise, and helpful responses based on the context provided.'
+          content: 'You are an expert assistant that provides precise, concise answers about web content. Give direct, actionable responses without unnecessary elaboration. Focus on the most relevant information to answer the user\'s question.'
         },
         {
           role: 'user',
           content: prompt
         }
       ],
-      max_tokens: 500,
+      max_tokens: 200,
       temperature: 0.3,
     };
 
@@ -305,25 +305,74 @@ function createSummaryPrompt(content: string, title: string, contentType: string
     wasTruncated: content.length > maxContentLength
   });
 
+  // Detect technical AI/research content and major AI companies/technologies
+  const technicalKeywords = [
+    // Research & Academic Papers
+    'arxiv', 'research paper', 'methodology', 'experiment', 'benchmark', 'SOTA', 'state of the art',
+    'ablation study', 'neural network', 'transformer', 'attention mechanism',
+    
+    // Major AI Companies (Top Tier Only)
+    'OpenAI', 'Anthropic', 'DeepMind', 'Palantir', 'Scale AI', 'ScaleAI',
+    
+    // Cutting-Edge Technologies
+    'MCP', 'Model Context Protocol', 'RAG', 'retrieval augmented generation',
+    'RLHF', 'constitutional AI', 'mixture of experts', 'MoE', 'multimodal AI',
+    
+    // Advanced AI Concepts
+    'AGI', 'artificial general intelligence', 'AI alignment', 'AI safety',
+    'fine-tuning', 'prompt engineering', 'in-context learning'
+  ];
+  
+  const contentLower = (title + ' ' + truncatedContent).toLowerCase();
+  const isTechnicalContent = technicalKeywords.some(keyword => contentLower.includes(keyword));
+  
+  console.log('📝 Technical content detected:', isTechnicalContent);
+
   const contentTypeInstructions = {
-    article: 'This is a news article. Focus on the main story, key facts, and important details.',
-    blog: 'This is a blog post. Summarize the main points and key insights shared by the author.',
-    documentation: 'This is technical documentation. Focus on the main concepts, procedures, and important information.',
-    general: 'This is web content. Provide a clear summary of the main information and key points.'
+    article: 'This is a news article. Extract the core story: what happened, who was involved, when, where, and why it matters. Skip background details.',
+    blog: 'This is a blog post. Identify the main argument, key insights, and actionable takeaways. Ignore personal anecdotes and filler.',
+    documentation: 'This is technical documentation. Focus on the primary purpose, key steps, and critical information needed to understand or use this.',
+    general: 'Extract the main purpose, key facts, and most important conclusions. Eliminate introductions, examples, and repetitive content.'
   };
 
   const instruction = contentTypeInstructions[contentType as keyof typeof contentTypeInstructions] || contentTypeInstructions.general;
   console.log('📝 Using instruction for content type:', contentType);
 
-  const prompt = `Please provide a concise summary of the following ${contentType} titled "${title}".
+  // Use different requirements for technical content
+  if (isTechnicalContent) {
+    const prompt = `Summarize this technical ${contentType} in 80-120 words maximum. ${instruction}
 
-${instruction}
+TECHNICAL REQUIREMENTS:
+- Capture 90%+ of the essential information including technical details
+- Preserve key methodologies, algorithms, and findings
+- Include specific metrics, performance numbers, and technical terms
+- Maintain accuracy of technical concepts and terminology
+- Use bullet points for multiple technical points
+- Focus on: methodology, results, implications, and technical innovations
 
-Keep the summary between 100-300 words and structure it with clear paragraphs. Focus on the most important information.
+Title: "${title}"
+Content: ${truncatedContent}
 
-Content:
-${truncatedContent}`;
+Technical Summary:`;
 
-  console.log('📝 Final prompt length:', prompt.length);
-  return prompt;
+    console.log('📝 Final prompt length (technical):', prompt.length);
+    return prompt;
+  } else {
+    const prompt = `Summarize this ${contentType} in 50-80 words maximum. ${instruction}
+
+REQUIREMENTS:
+- Capture 80%+ of the essential information
+- Use bullet points if multiple key points exist
+- Be extremely concise - every word must add value
+- Skip introductory phrases like "This article discusses..."
+- Focus on facts, conclusions, and actionable information
+
+Title: "${title}"
+Content: ${truncatedContent}
+
+Summary:`;
+
+    console.log('📝 Final prompt length:', prompt.length);
+    return prompt;
+  }
 }
