@@ -372,7 +372,7 @@ Content: ${truncatedContent}
 
 Summary:`;
 
-    console.log('📝 Final prompt length:', prompt.length);
-    return prompt;
+  console.log('📝 Final prompt length:', prompt.length);
+  return prompt;
   }
 }

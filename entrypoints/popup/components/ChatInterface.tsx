@@ -88,7 +88,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
       }
 
       console.log(`📡 Attempting to load page content (attempt ${retryCount + 1}/${maxRetries + 1})`);
-      
+
       const response = await browser.tabs.sendMessage(tab.id, {
         type: 'GET_PAGE_CONTENT'
       });
@@ -221,28 +221,28 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
         return generateInitialSummary(retryCount + 1);
       } else {
         // Update conversation with error message
-        setConversations(prev => prev.map(conv => 
-          conv.id === conversationId 
-            ? {
-                ...conv,
-                messages: conv.messages.map(msg => 
-                  msg.id === aiMessageId 
-                    ? { 
-                        ...msg, 
+      setConversations(prev => prev.map(conv => 
+        conv.id === conversationId 
+          ? {
+              ...conv,
+              messages: conv.messages.map(msg => 
+                msg.id === aiMessageId 
+                  ? { 
+                      ...msg, 
                         content: isConnectionError 
                           ? 'Connection failed after multiple attempts. Please try refreshing the page and reopening the extension.'
                           : 'Sorry, there was an error generating the summary. Please try again.',
-                        isLoading: false 
-                      }
-                    : msg
-                )
-              }
-            : conv
-        ));
+                      isLoading: false 
+                    }
+                  : msg
+              )
+            }
+          : conv
+      ));
         if (isConnectionError) {
           setConnectionFailed(true);
         } else {
-          onShowMessage('Error generating summary', 'error');
+      onShowMessage('Error generating summary', 'error');
         }
       }
     } finally {
@@ -277,15 +277,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
 
     // Add messages to active conversation (only on first attempt)
     if (retryCount === 0) {
-      setConversations(prev => prev.map(conv => 
-        conv.id === activeConversation.id 
-          ? { ...conv, messages: [...conv.messages, userMessage, aiMessage] }
-          : conv
-      ));
-      
-      setIsLoading(true);
-      // Set up scroll to AI message when user sends a new message
-      setPendingScrollToAI(aiMessageId);
+    setConversations(prev => prev.map(conv => 
+      conv.id === activeConversation.id 
+        ? { ...conv, messages: [...conv.messages, userMessage, aiMessage] }
+        : conv
+    ));
+
+    setIsLoading(true);
+    // Set up scroll to AI message when user sends a new message
+    setPendingScrollToAI(aiMessageId);
     }
 
     try {
@@ -350,34 +350,34 @@ Please provide a helpful response based on the page content and our conversation
         return handleSendMessage(messageContent, retryCount + 1);
       } else {
         // Update conversation with error message
-        setConversations(prev => prev.map(conv => 
-          conv.id === activeConversation.id 
-            ? {
-                ...conv,
-                messages: conv.messages.map(msg => 
-                  msg.id === aiMessageId 
-                    ? { 
-                        ...msg, 
+      setConversations(prev => prev.map(conv => 
+        conv.id === activeConversation.id 
+          ? {
+              ...conv,
+              messages: conv.messages.map(msg => 
+                msg.id === aiMessageId 
+                  ? { 
+                      ...msg, 
                         content: isConnectionError 
                           ? 'Connection failed after multiple attempts. Please try refreshing the page and reopening the extension.'
                           : 'Sorry, I encountered an error. Please try again.',
-                        isLoading: false 
-                      }
-                    : msg
-                )
-              }
-            : conv
-        ));
+                      isLoading: false 
+                    }
+                  : msg
+              )
+            }
+          : conv
+      ));
         if (isConnectionError) {
           setConnectionFailed(true);
         } else {
-          onShowMessage('Error generating response', 'error');
+      onShowMessage('Error generating response', 'error');
         }
       }
     } finally {
       // Only set loading false on first attempt or when we're not retrying
       if (retryCount === maxRetries) {
-        setIsLoading(false);
+      setIsLoading(false);
       }
     }
   };
