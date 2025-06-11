@@ -5,8 +5,8 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: 'Page Summarizer',
-    description: 'AI-powered web page summarizer using OpenAI',
+    name: 'AI Page Summaries',
+    description: 'Smart AI-powered web page summaries by Solve-AI.org',
     permissions: ['storage', 'activeTab'],
     host_permissions: ['https://api.openai.com/*'],
   },

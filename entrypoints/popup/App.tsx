@@ -154,8 +154,8 @@ function App() {
             </svg>
           </div>
           <div>
-            <h1 className="text-base font-semibold tracking-tight">Page Summarizer</h1>
-            <p className="text-gray-300 text-xs">AI-powered chat</p>
+            <h1 className="text-base font-semibold tracking-tight">AI Page Summaries</h1>
+            <p className="text-gray-300 text-xs">By Solve-AI.org</p>
           </div>
         </div>
       </div>
