@@ -5,15 +5,13 @@ interface ChatInputProps {
   isLoading: boolean;
   placeholder?: string;
   disabled?: boolean;
-  onMessageSent?: () => void;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({
   onSendMessage,
   isLoading,
   placeholder = "Ask a follow-up question...",
-  disabled = false,
-  onMessageSent
+  disabled = false
 }) => {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -23,7 +21,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
     if (message.trim() && !isLoading && !disabled) {
       onSendMessage(message.trim());
       setMessage('');
-      onMessageSent?.();
     }
   };
 
@@ -43,8 +40,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   }, [message]);
 
   return (
-    <form onSubmit={handleSubmit} className="border-t border-gray-200 p-2 bg-white">
-      <div className="flex gap-2 items-end">
+    <form onSubmit={handleSubmit} className="border-t border-gray-200/60 p-4 bg-white/30 backdrop-blur-sm">
+      <div className="flex gap-3 items-end">
         <div className="flex-1 relative">
           <textarea
             ref={textareaRef}
@@ -54,12 +51,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({
             placeholder={placeholder}
             disabled={disabled || isLoading}
             rows={1}
-            className="w-full px-2 py-2 bg-gray-50 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-black focus:border-black text-xs resize-none transition-all duration-200 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-            style={{ maxHeight: '80px' }}
+            className="w-full px-4 py-3 bg-white/80 border border-gray-200/60 rounded-2xl focus:outline-none focus:ring-2 focus:ring-gray-400 focus:border-transparent text-xs resize-none transition-all duration-200 placeholder-gray-500 disabled:bg-gray-100 disabled:cursor-not-allowed backdrop-blur-sm shadow-sm"
+            style={{ maxHeight: '120px' }}
           />
           {message.trim() && (
-            <div className="absolute right-2 top-2">
-              <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
+            <div className="absolute right-4 top-4">
+              <div className="w-2 h-2 bg-green-500 rounded-full shadow-sm"></div>
             </div>
           )}
         </div>
@@ -67,24 +64,29 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <button
           type="submit"
           disabled={!message.trim() || isLoading || disabled}
-          className="bg-black hover:bg-gray-900 disabled:bg-gray-300 text-white p-2 rounded-md transition-all duration-200 cursor-pointer disabled:cursor-not-allowed flex-shrink-0"
+          className="text-white p-3 rounded-2xl transition-all duration-200 cursor-pointer disabled:cursor-not-allowed flex-shrink-0 shadow-sm hover:shadow-md transform hover:scale-105 disabled:transform-none disabled:opacity-60"
+          style={{
+            background: (!message.trim() || isLoading || disabled) 
+              ? '#9ca3af' 
+              : 'radial-gradient(at 0% 1%, #262626 0px, transparent 50%), radial-gradient(at 97% 99%, #1f1f1f 0px, transparent 50%), #030303'
+          }}
         >
           {isLoading ? (
-            <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
           ) : (
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
           )}
         </button>
       </div>
       
-      <div className="flex items-center justify-between mt-1">
-        <p className="text-xs text-gray-500">
+      <div className="flex items-center justify-between mt-3">
+        <p className="text-xs text-gray-600">
           Enter to send, Shift+Enter for new line
         </p>
         {message.length > 0 && (
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-500 bg-white/60 px-2 py-1 rounded-lg backdrop-blur-sm">
             {message.length}
           </span>
         )}

@@ -6,9 +6,10 @@ import { ChatMessageData } from './ChatMessage';
 interface ChatInterfaceProps {
   apiKey: string;
   onShowMessage: (text: string, type: 'success' | 'error') => void;
+  autoStart?: boolean;
 }
 
-export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMessage }) => {
+export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMessage, autoStart = false }) => {
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [collapsedConversations, setCollapsedConversations] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
@@ -18,16 +19,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
     contentType: string;
     wordCount: number;
   } | null>(null);
+  const [pendingScrollToAI, setPendingScrollToAI] = useState<string | null>(null); // Track which AI message to scroll to
   
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Smooth scroll to bottom function
-  const scrollToBottom = (smooth = true) => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ 
-        behavior: smooth ? 'smooth' : 'auto',
-        block: 'end'
+  // Scroll to the top of a specific AI message
+  const scrollToAIMessage = (messageId: string) => {
+    // Find the AI message element by its ID
+    const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+    if (messageElement && chatContainerRef.current) {
+      // Scroll to the top of the AI message
+      messageElement.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'start' // This positions the element at the top of the visible area
       });
     }
   };
@@ -36,6 +40,25 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
   useEffect(() => {
     loadPageContent();
   }, []);
+
+  // Auto-start summary if autoStart is true
+  useEffect(() => {
+    if (autoStart && currentPageContent && conversations.length === 0) {
+      generateInitialSummary();
+    }
+  }, [autoStart, currentPageContent, conversations.length]);
+
+  // Handle pending scroll to AI message
+  useEffect(() => {
+    if (pendingScrollToAI) {
+      // Small delay to ensure the message is rendered
+      const timeoutId = setTimeout(() => {
+        scrollToAIMessage(pendingScrollToAI);
+        setPendingScrollToAI(null);
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [pendingScrollToAI]);
 
   const loadPageContent = async () => {
     try {
@@ -100,9 +123,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
     ]);
 
     setIsLoading(true);
-    
-    // Scroll to bottom when new conversation starts
-    setTimeout(() => scrollToBottom(), 100);
 
     try {
       const response = await browser.runtime.sendMessage({
@@ -126,10 +146,6 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
               }
             : conv
         ));
-        onShowMessage('Summary generated successfully!', 'success');
-        
-        // Scroll to bottom when summary is generated
-        setTimeout(() => scrollToBottom(), 100);
       } else {
         throw new Error(response.error || 'Failed to generate summary');
       }
@@ -188,8 +204,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
 
     setIsLoading(true);
     
-    // Scroll to bottom when user sends message
-    setTimeout(() => scrollToBottom(), 100);
+    // Set up scroll to AI message when user sends a new message
+    setPendingScrollToAI(aiMessageId);
 
     try {
       // Create context from conversation history
@@ -229,9 +245,6 @@ Please provide a helpful response based on the page content and our conversation
               }
             : conv
         ));
-        
-        // Scroll to bottom when AI responds
-        setTimeout(() => scrollToBottom(), 100);
       } else {
         throw new Error(response.error || 'Failed to generate response');
       }
@@ -299,50 +312,18 @@ Please provide a helpful response based on the page content and our conversation
     }
   }, [conversations.length]);
 
-  // Auto-scroll when conversations change (for any remaining edge cases)
-  useEffect(() => {
-    const timeoutId = setTimeout(() => scrollToBottom(), 150);
-    return () => clearTimeout(timeoutId);
-  }, [conversations.length]);
-
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="flex-shrink-0 p-2 border-b border-gray-200">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-black rounded-full"></div>
-            <span className="text-xs font-medium text-gray-900">AI Chat</span>
-          </div>
-          {!activeConversation && (
-            <button
-              onClick={generateInitialSummary}
-              disabled={isLoading || !apiKey.trim()}
-              className="bg-black hover:bg-gray-900 disabled:bg-gray-300 text-white px-2 py-1 rounded-md text-xs font-medium transition-all duration-200 cursor-pointer disabled:cursor-not-allowed"
-            >
-              Start Chat
-            </button>
-          )}
-        </div>
-        {currentPageContent && (
-          <p className="text-xs text-gray-500 mt-0.5 truncate">
-            {currentPageContent.title} • {currentPageContent.wordCount} words
-          </p>
-        )}
-      </div>
-
       {/* Chat Content */}
       <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-2 space-y-2">
         {conversations.length === 0 ? (
           <div className="text-center py-6">
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+              <div className="w-2.5 h-2.5 border-2 border-gray-400 border-t-gray-600 rounded-full animate-spin"></div>
             </div>
-            <h3 className="text-xs font-medium text-gray-900 mb-1">Start a conversation</h3>
-            <p className="text-xs text-gray-500 mb-3">
-              Get an AI summary of this page and ask follow-up questions
+            <h3 className="text-xs font-medium text-gray-900 mb-1">Generating summary...</h3>
+            <p className="text-xs text-gray-500">
+              Please wait while we analyze this page
             </p>
           </div>
         ) : (
@@ -378,8 +359,6 @@ Please provide a helpful response based on the page content and our conversation
             )}
           </>
         )}
-        {/* Invisible element to scroll to */}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Chat Input */}
@@ -389,8 +368,7 @@ Please provide a helpful response based on the page content and our conversation
             onSendMessage={handleSendMessage}
             isLoading={isLoading}
             disabled={!apiKey.trim()}
-            placeholder="Ask a follow-up question about this page..."
-            onMessageSent={() => setTimeout(() => scrollToBottom(), 50)}
+            placeholder="Ask a follow-up question..."
           />
         </div>
       )}
