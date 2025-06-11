@@ -109,7 +109,7 @@ async function generateSummary(content: string, title: string, contentType: stri
 
     console.log('🌐 Making OpenAI API request...');
     const requestBody = {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
@@ -214,7 +214,7 @@ async function generateChatResponse(prompt: string, userMessage: string): Promis
 
     console.log('🌐 Making OpenAI API request for chat response...');
     const requestBody = {
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4o-mini',
       messages: [
         {
           role: 'system',
@@ -294,8 +294,8 @@ function createSummaryPrompt(content: string, title: string, contentType: string
     contentType
   });
 
-  // Truncate content if too long (GPT-3.5-turbo has token limits)
-  const maxContentLength = 8000; // Conservative limit
+  // Truncate content if too long (GPT-4o-mini has higher token limits)
+  const maxContentLength = 12000; // Increased limit for GPT-4o-mini
   const truncatedContent = content.length > maxContentLength 
     ? content.substring(0, maxContentLength) + '...[content truncated]'
     : content;

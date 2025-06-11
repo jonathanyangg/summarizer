@@ -41,7 +41,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="border-t border-gray-200/60 p-4 bg-white/30 backdrop-blur-sm">
-      <div className="flex gap-3 items-end">
+      <div className="flex gap-3 items-center">
         <div className="flex-1 relative">
           <textarea
             ref={textareaRef}
@@ -85,11 +85,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
         <p className="text-xs text-gray-600">
           Enter to send, Shift+Enter for new line
         </p>
-        {message.length > 0 && (
-          <span className="text-xs text-gray-500 bg-white/60 px-2 py-1 rounded-lg backdrop-blur-sm">
-            {message.length}
-          </span>
-        )}
       </div>
     </form>
   );
