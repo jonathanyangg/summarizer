@@ -13,6 +13,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
   const [conversations, setConversations] = useState<ConversationData[]>([]);
   const [collapsedConversations, setCollapsedConversations] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
+  const [connectionFailed, setConnectionFailed] = useState(false);
   const [currentPageContent, setCurrentPageContent] = useState<{
     title: string;
     content: string;
@@ -33,6 +34,21 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
         behavior: 'smooth',
         block: 'start' // This positions the element at the top of the visible area
       });
+    }
+  };
+
+  // Manual retry function for when automatic retries fail
+  const handleManualRetry = async () => {
+    console.log('🔄 Manual retry initiated');
+    setConnectionFailed(false);
+    onShowMessage('Retrying connection...', 'success');
+    
+    // Try to reload page content first
+    await loadPageContent();
+    
+    // If we have no conversations yet, try to generate initial summary
+    if (conversations.length === 0 && currentPageContent) {
+      await generateInitialSummary();
     }
   };
 
@@ -60,29 +76,64 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
     }
   }, [pendingScrollToAI]);
 
-  const loadPageContent = async () => {
+  const loadPageContent = async (retryCount = 0) => {
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
+
     try {
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-      if (!tab.id) return;
+      if (!tab.id) {
+        console.log('❌ No active tab found');
+        return;
+      }
 
+      console.log(`📡 Attempting to load page content (attempt ${retryCount + 1}/${maxRetries + 1})`);
+      
       const response = await browser.tabs.sendMessage(tab.id, {
         type: 'GET_PAGE_CONTENT'
       });
 
       if (response?.success) {
+        console.log('✅ Page content loaded successfully');
         setCurrentPageContent({
           title: response.title || 'Untitled',
           content: response.content || '',
           contentType: response.contentType || 'general',
           wordCount: response.wordCount || 0
         });
+      } else {
+        throw new Error(response?.error || 'Failed to get page content');
       }
     } catch (error) {
-      console.error('Error loading page content:', error);
+      console.error(`❌ Error loading page content (attempt ${retryCount + 1}):`, error);
+      
+      // Check if it's a connection error
+      const isConnectionError = error instanceof Error && 
+        (error.message.includes('Could not establish connection') || 
+         error.message.includes('Receiving end does not exist') ||
+         error.message.includes('Extension context invalidated'));
+
+      if (isConnectionError && retryCount < maxRetries) {
+        console.log(`🔄 Connection error detected, retrying in ${retryDelay}ms...`);
+        onShowMessage(`Connection issue, retrying... (${retryCount + 1}/${maxRetries})`, 'error');
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return loadPageContent(retryCount + 1);
+      } else if (isConnectionError) {
+        console.log('❌ Max retries reached for connection error');
+        setConnectionFailed(true);
+      } else {
+        console.log('❌ Non-connection error:', error);
+        onShowMessage('Error loading page content', 'error');
+      }
     }
   };
 
-  const generateInitialSummary = async () => {
+  const generateInitialSummary = async (retryCount = 0) => {
+    const maxRetries = 2;
+    const retryDelay = 1500; // 1.5 seconds
+
     if (!currentPageContent) {
       await loadPageContent();
       return;
@@ -125,6 +176,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
     setIsLoading(true);
 
     try {
+      console.log(`🤖 Generating summary (attempt ${retryCount + 1}/${maxRetries + 1})`);
+      
       const response = await browser.runtime.sendMessage({
         type: 'GENERATE_SUMMARY',
         content: currentPageContent.content,
@@ -133,6 +186,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
       });
 
       if (response.success) {
+        console.log('✅ Summary generated successfully');
         // Update the AI message with the summary
         setConversations(prev => prev.map(conv => 
           conv.id === conversationId 
@@ -150,30 +204,56 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
         throw new Error(response.error || 'Failed to generate summary');
       }
     } catch (error) {
-      console.error('Error generating summary:', error);
-      setConversations(prev => prev.map(conv => 
-        conv.id === conversationId 
-          ? {
-              ...conv,
-              messages: conv.messages.map(msg => 
-                msg.id === aiMessageId 
-                  ? { 
-                      ...msg, 
-                      content: 'Sorry, there was an error generating the summary. Please try again.',
-                      isLoading: false 
-                    }
-                  : msg
-              )
-            }
-          : conv
-      ));
-      onShowMessage('Error generating summary', 'error');
+      console.error(`❌ Error generating summary (attempt ${retryCount + 1}):`, error);
+      
+      // Check if it's a connection error
+      const isConnectionError = error instanceof Error && 
+        (error.message.includes('Could not establish connection') || 
+         error.message.includes('Receiving end does not exist') ||
+         error.message.includes('Extension context invalidated'));
+
+      if (isConnectionError && retryCount < maxRetries) {
+        console.log(`🔄 Connection error detected, retrying summary in ${retryDelay}ms...`);
+        onShowMessage(`AI connection issue, retrying... (${retryCount + 1}/${maxRetries})`, 'error');
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return generateInitialSummary(retryCount + 1);
+      } else {
+        // Update conversation with error message
+        setConversations(prev => prev.map(conv => 
+          conv.id === conversationId 
+            ? {
+                ...conv,
+                messages: conv.messages.map(msg => 
+                  msg.id === aiMessageId 
+                    ? { 
+                        ...msg, 
+                        content: isConnectionError 
+                          ? 'Connection failed after multiple attempts. Please try refreshing the page and reopening the extension.'
+                          : 'Sorry, there was an error generating the summary. Please try again.',
+                        isLoading: false 
+                      }
+                    : msg
+                )
+              }
+            : conv
+        ));
+        if (isConnectionError) {
+          setConnectionFailed(true);
+        } else {
+          onShowMessage('Error generating summary', 'error');
+        }
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleSendMessage = async (messageContent: string) => {
+  const handleSendMessage = async (messageContent: string, retryCount = 0) => {
+    const maxRetries = 2;
+    const retryDelay = 1500; // 1.5 seconds
+
     const activeConversation = conversations.find(conv => conv.isActive);
     if (!activeConversation) return;
 
@@ -195,19 +275,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ apiKey, onShowMess
       isLoading: true
     };
 
-    // Add messages to active conversation
-    setConversations(prev => prev.map(conv => 
-      conv.id === activeConversation.id 
-        ? { ...conv, messages: [...conv.messages, userMessage, aiMessage] }
-        : conv
-    ));
-
-    setIsLoading(true);
-    
-    // Set up scroll to AI message when user sends a new message
-    setPendingScrollToAI(aiMessageId);
+    // Add messages to active conversation (only on first attempt)
+    if (retryCount === 0) {
+      setConversations(prev => prev.map(conv => 
+        conv.id === activeConversation.id 
+          ? { ...conv, messages: [...conv.messages, userMessage, aiMessage] }
+          : conv
+      ));
+      
+      setIsLoading(true);
+      // Set up scroll to AI message when user sends a new message
+      setPendingScrollToAI(aiMessageId);
+    }
 
     try {
+      console.log(`💬 Generating chat response (attempt ${retryCount + 1}/${maxRetries + 1})`);
+      
       // Create context from conversation history
       const conversationHistory = activeConversation.messages
         .filter(msg => !msg.isLoading)
@@ -233,6 +316,7 @@ Please provide a helpful response based on the page content and our conversation
       });
 
       if (response.success) {
+        console.log('✅ Chat response generated successfully');
         setConversations(prev => prev.map(conv => 
           conv.id === activeConversation.id 
             ? {
@@ -249,26 +333,52 @@ Please provide a helpful response based on the page content and our conversation
         throw new Error(response.error || 'Failed to generate response');
       }
     } catch (error) {
-      console.error('Error generating chat response:', error);
-      setConversations(prev => prev.map(conv => 
-        conv.id === activeConversation.id 
-          ? {
-              ...conv,
-              messages: conv.messages.map(msg => 
-                msg.id === aiMessageId 
-                  ? { 
-                      ...msg, 
-                      content: 'Sorry, I encountered an error. Please try again.',
-                      isLoading: false 
-                    }
-                  : msg
-              )
-            }
-          : conv
-      ));
-      onShowMessage('Error generating response', 'error');
+      console.error(`❌ Error generating chat response (attempt ${retryCount + 1}):`, error);
+      
+      // Check if it's a connection error
+      const isConnectionError = error instanceof Error && 
+        (error.message.includes('Could not establish connection') || 
+         error.message.includes('Receiving end does not exist') ||
+         error.message.includes('Extension context invalidated'));
+
+      if (isConnectionError && retryCount < maxRetries) {
+        console.log(`🔄 Connection error detected, retrying chat response in ${retryDelay}ms...`);
+        onShowMessage(`AI connection issue, retrying... (${retryCount + 1}/${maxRetries})`, 'error');
+        
+        // Wait before retrying
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
+        return handleSendMessage(messageContent, retryCount + 1);
+      } else {
+        // Update conversation with error message
+        setConversations(prev => prev.map(conv => 
+          conv.id === activeConversation.id 
+            ? {
+                ...conv,
+                messages: conv.messages.map(msg => 
+                  msg.id === aiMessageId 
+                    ? { 
+                        ...msg, 
+                        content: isConnectionError 
+                          ? 'Connection failed after multiple attempts. Please try refreshing the page and reopening the extension.'
+                          : 'Sorry, I encountered an error. Please try again.',
+                        isLoading: false 
+                      }
+                    : msg
+                )
+              }
+            : conv
+        ));
+        if (isConnectionError) {
+          setConnectionFailed(true);
+        } else {
+          onShowMessage('Error generating response', 'error');
+        }
+      }
     } finally {
-      setIsLoading(false);
+      // Only set loading false on first attempt or when we're not retrying
+      if (retryCount === maxRetries) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -316,7 +426,31 @@ Please provide a helpful response based on the page content and our conversation
     <div className="flex flex-col h-full">
       {/* Chat Content */}
       <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-2 space-y-2">
-        {conversations.length === 0 ? (
+        {connectionFailed ? (
+          <div className="text-center py-6">
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-3">
+              <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <h3 className="text-xs font-medium text-gray-900 mb-2">Connection Failed</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Unable to connect to the page content. Try refreshing the page.
+            </p>
+            <button
+              onClick={handleManualRetry}
+              disabled={isLoading}
+              className="px-4 py-2 text-white text-xs rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:cursor-pointer transition-colors"
+              style={{
+                background: isLoading 
+                  ? '#666666'
+                  : 'radial-gradient(at 0% 1%, #262626 0px, transparent 50%), radial-gradient(at 97% 99%, #1f1f1f 0px, transparent 50%), #030303'
+              }}
+            >
+              {isLoading ? 'Retrying...' : 'Retry Connection'}
+            </button>
+          </div>
+        ) : conversations.length === 0 ? (
           <div className="text-center py-6">
             <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
               <div className="w-2.5 h-2.5 border-2 border-gray-400 border-t-gray-600 rounded-full animate-spin"></div>
